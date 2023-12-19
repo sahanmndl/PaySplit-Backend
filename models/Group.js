@@ -1,4 +1,4 @@
-import { Schema, model } from 'mongoose';
+import {model, Schema} from 'mongoose';
 
 const GroupSchema = new Schema({
     name: {
@@ -13,8 +13,8 @@ const GroupSchema = new Schema({
     members: [
         {
             type: Schema.Types.ObjectId,
-            ref: 'User',
-        },
+            ref: 'User'
+        }
     ],
 });
 

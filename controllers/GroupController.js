@@ -1,6 +1,7 @@
 import {nanoid} from "nanoid";
 import Group from "../models/Group.js";
 import User from "../models/User.js";
+import Transaction from "../models/Transaction.js";
 
 export const createGroup = async (req, res, next) => {
     try {
@@ -30,6 +31,8 @@ export const createGroup = async (req, res, next) => {
 export const joinGroup = async (req, res, next) => {
     try {
         const {inviteCode, userId} = req.body;
+
+        console.log(inviteCode, userId)
 
         const user = await User.findById(userId);
         if (!user) {
@@ -69,4 +72,4 @@ export const getGroupById = async (req, res, next) => {
     } catch (e) {
         return res.status(500).json({message: 'Error retrieving group details'});
     }
-};
+}
