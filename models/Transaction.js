@@ -1,21 +1,26 @@
 import {model, Schema} from 'mongoose';
 
 const TransactionSchema = new Schema({
-    group: {
+    groupId: {
         type: String,
         required: true,
     },
-    creator: {
+    creatorId: {
         type: String,
         required: true,
     },
-    description: {
+    title: {
         type: String,
         required: true,
+    },
+    totalAmount: {
+        type: Number,
+        default: 0,
+        required: true
     },
     participants: [
         {
-            user: {
+            userId: {
                 type: String,
                 required: true,
             },

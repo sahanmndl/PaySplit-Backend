@@ -21,6 +21,12 @@ const UserSchema = new Schema(
                 ref: 'Group'
             }
         ],
+        createdTransactions: [
+            {
+                type: Schema.Types.ObjectId,
+                ref: 'Transaction'
+            }
+        ],
         pendingTransactions: [
             {
                 type: Schema.Types.ObjectId,
