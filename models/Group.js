@@ -16,6 +16,12 @@ const GroupSchema = new Schema({
             ref: 'User'
         }
     ],
+    transactionHistory: [
+        {
+            type: Schema.Types.ObjectId,
+            ref: 'Transaction'
+        }
+    ]
 });
 
 const Group = model('Group', GroupSchema);

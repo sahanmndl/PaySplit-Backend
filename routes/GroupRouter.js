@@ -2,8 +2,9 @@ import express from "express";
 import {createGroup, getGroupById, joinGroup,} from "../controllers/GroupController.js";
 import {
     createTransaction,
-    deleteAllTransactions,
+    deleteAllTransactionsInDB,
     deleteTransaction,
+    getTransactionById,
     updateTransaction
 } from "../controllers/TransactionController.js";
 
@@ -14,7 +15,8 @@ groupRouter.post('/joinGroup', joinGroup)
 groupRouter.post('/groupDetails', getGroupById)
 groupRouter.post('/createTransaction', createTransaction)
 groupRouter.put('/updateTransaction', updateTransaction)
+groupRouter.post('/transactionDetails', getTransactionById)
 groupRouter.delete('/deleteTransaction', deleteTransaction)
-groupRouter.delete('/deleteAllTransactions', deleteAllTransactions)
+groupRouter.delete('/deleteAllTransactionsInDB', deleteAllTransactionsInDB)
 
 export default groupRouter

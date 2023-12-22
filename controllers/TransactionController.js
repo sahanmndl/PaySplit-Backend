@@ -29,6 +29,7 @@ export const createTransaction = async (req, res, next) => {
         })
 
         creator.createdTransactions.push(transaction);
+        group.transactionHistory.push(transaction)
         for (const participant of participants) {
             const user = await User.findById(participant.userId);
             if (user) {
@@ -38,6 +39,7 @@ export const createTransaction = async (req, res, next) => {
         }
 
         await creator.save();
+        await group.save()
         await transaction.save();
 
         return res.status(200).json({transaction});
@@ -102,20 +104,47 @@ export const deleteTransaction = async (req, res, next) => {
     }
 }
 
-export const deleteAllTransactions = async (req, res, next) => {
+export const getTransactionById = async (req, res, next) => {
+    try {
+        const {transactionId, userId} = req.body
+
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({message: 'User not found'});
+        }
+        const transaction = await Transaction.findById(transactionId);
+        if (!transaction) {
+            return res.status(404).json({message: 'Transaction not found'});
+        }
+
+        return res.status(200).json({transaction});
+    } catch (e) {
+        return res.status(500).json({message: 'Error fetching transaction details'});
+    }
+};
+
+
+//Developer Functions
+
+export const deleteAllTransactionsInDB = async (req, res, next) => {
     try {
         await Transaction.deleteMany({});
 
         const users = await User.find({});
-
         for (const user of users) {
             user.pendingTransactions = [];
             user.createdTransactions = [];
             await user.save();
         }
 
-        return res.status(200).json({ message: 'All transactions deleted successfully' });
+        const groups = await Group.find({})
+        for (const grp of groups) {
+            grp.transactionHistory = []
+            await grp.save()
+        }
+
+        return res.status(200).json({message: 'All transactions deleted successfully'});
     } catch (e) {
-        return res.status(500).json({ message: 'Error deleting transactions' });
+        return res.status(500).json({message: 'Error deleting transactions'});
     }
 }
