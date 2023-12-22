@@ -1,6 +1,7 @@
 import User from "../models/User.js";
 import Group from "../models/Group.js";
 import Transaction from "../models/Transaction.js";
+import redisClient from "../middleware/Redis.js";
 
 export const createTransaction = async (req, res, next) => {
     try {
@@ -112,13 +113,24 @@ export const getTransactionById = async (req, res, next) => {
         if (!user) {
             return res.status(404).json({message: 'User not found'});
         }
+
+        const cacheKey = `transaction-${transactionId}`
+
+        const cachedTransaction = await redisClient.get(cacheKey)
+        if (data !== null) {
+            return res.status(200).json({transaction: JSON.parse(cachedTransaction)});
+        }
+
         const transaction = await Transaction.findById(transactionId);
         if (!transaction) {
             return res.status(404).json({message: 'Transaction not found'});
         }
 
+        await redisClient.setEx(cacheKey, 10, JSON.stringify(transaction))
+
         return res.status(200).json({transaction});
     } catch (e) {
+        console.error(e)
         return res.status(500).json({message: 'Error fetching transaction details'});
     }
 };

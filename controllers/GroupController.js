@@ -1,7 +1,6 @@
 import {nanoid} from "nanoid";
 import Group from "../models/Group.js";
 import User from "../models/User.js";
-import Transaction from "../models/Transaction.js";
 
 export const createGroup = async (req, res, next) => {
     try {
