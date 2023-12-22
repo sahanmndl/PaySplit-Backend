@@ -36,7 +36,11 @@ const TransactionSchema = new Schema({
             }
         },
     ],
-});
+},
+    {
+        timestamps: true
+    }
+);
 
 const Transaction = model('Transaction', TransactionSchema);
 

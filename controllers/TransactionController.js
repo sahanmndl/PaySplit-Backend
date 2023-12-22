@@ -117,7 +117,7 @@ export const getTransactionById = async (req, res, next) => {
         const cacheKey = `transaction-${transactionId}`
 
         const cachedTransaction = await redisClient.get(cacheKey)
-        if (data !== null) {
+        if (cachedTransaction !== null) {
             return res.status(200).json({transaction: JSON.parse(cachedTransaction)});
         }
 

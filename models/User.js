@@ -33,6 +33,9 @@ const UserSchema = new Schema(
                 ref: 'Transaction'
             }
         ]
+    },
+    {
+        timestamps: true
     }
 );
 

@@ -22,7 +22,11 @@ const GroupSchema = new Schema({
             ref: 'Transaction'
         }
     ]
-});
+},
+    {
+        timestamps: true
+    }
+)
 
 const Group = model('Group', GroupSchema);
 

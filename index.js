@@ -33,9 +33,11 @@ mongoose
     )
     .then(() => app.listen(process.env.PORT || 8008))
     .then(async () => {
-        console.log("CONNECTED TO PORT 8008")
+        console.log("CONNECTED TO MONGODB THROUGH PORT 8008")
         await redisClient.connect()
-            .then(() => console.log("Redis connected!"))
+            .then(() => console.log("CONNECTED TO REDIS"))
             .catch((e) => console.error("Redis connection error: ", e))
     })
-    .catch((err) => console.log(err));
+    .catch((err) => {
+        console.error("CONNECTION ERROR: ", err)
+    });
