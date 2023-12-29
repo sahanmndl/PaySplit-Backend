@@ -1,7 +1,6 @@
 import User from "../models/User.js";
 import Group from "../models/Group.js";
 import Transaction from "../models/Transaction.js";
-import redisClient from "../middleware/Redis.js";
 
 export const createTransaction = async (req, res, next) => {
     try {
@@ -114,24 +113,64 @@ export const getTransactionById = async (req, res, next) => {
             return res.status(404).json({message: 'User not found'});
         }
 
-        const cacheKey = `transaction-${transactionId}`
-
-        const cachedTransaction = await redisClient.get(cacheKey)
-        if (cachedTransaction !== null) {
-            return res.status(200).json({transaction: JSON.parse(cachedTransaction)});
-        }
+        // const cacheKey = `transaction-${transactionId}`
+        //
+        // const cachedTransaction = await redisClient.get(cacheKey)
+        // if (cachedTransaction !== null) {
+        //     return res.status(200).json({transaction: JSON.parse(cachedTransaction)});
+        // }
 
         const transaction = await Transaction.findById(transactionId);
         if (!transaction) {
             return res.status(404).json({message: 'Transaction not found'});
         }
 
-        await redisClient.setEx(cacheKey, 10, JSON.stringify(transaction))
+        //await redisClient.setEx(cacheKey, 30, JSON.stringify(transaction))
 
         return res.status(200).json({transaction});
     } catch (e) {
         console.error(e)
         return res.status(500).json({message: 'Error fetching transaction details'});
+    }
+}
+
+export const settleTransaction = async (req, res, next) => {
+    try {
+        const {userId, transactionId} = req.body;
+
+        const transaction = await Transaction.findById(transactionId);
+        if (!transaction) {
+            return res.status(404).json({message: 'Transaction not found'});
+        }
+
+        const user = await User.findById(userId)
+        if (!user) {
+            return res.status(404).json({message: "User not found"})
+        }
+
+        const participantIndex = transaction.participants.findIndex(
+            (participant) => participant.userId === userId
+        );
+
+        if (participantIndex === -1) {
+            return res.status(404).json({message: 'Participant not found in the transaction'});
+        }
+
+        const paid = transaction.participants[participantIndex].paid
+        if (paid) {
+            user.pendingTransactions.push(transaction)
+        } else {
+            user.pendingTransactions = user.pendingTransactions.filter(pt => pt.toString() !== transactionId)
+        }
+
+        transaction.participants[participantIndex].paid = !paid
+
+        await user.save()
+        await transaction.save()
+
+        return res.status(200).json({transaction})
+    } catch (e) {
+        return res.status(500).json({message: 'Error settling transaction'})
     }
 };
 

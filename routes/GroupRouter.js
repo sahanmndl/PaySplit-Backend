@@ -5,6 +5,7 @@ import {
     deleteAllTransactionsInDB,
     deleteTransaction,
     getTransactionById,
+    settleTransaction,
     updateTransaction
 } from "../controllers/TransactionController.js";
 
@@ -16,6 +17,7 @@ groupRouter.post('/groupDetails', getGroupById)
 groupRouter.post('/createTransaction', createTransaction)
 groupRouter.put('/updateTransaction', updateTransaction)
 groupRouter.post('/transactionDetails', getTransactionById)
+groupRouter.post('/settleTransaction', settleTransaction)
 groupRouter.delete('/deleteTransaction', deleteTransaction)
 groupRouter.delete('/deleteAllTransactionsInDB', deleteAllTransactionsInDB)
 
