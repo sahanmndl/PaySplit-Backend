@@ -21,7 +21,7 @@ const limiter = rateLimit({
 const app = express()
 
 app.use(cors())
-app.use(limiter)
+//app.use(limiter)
 app.use(express.json({limit: "30mb", extended: true}))
 app.use('/api/user/', userRouter)
 app.use('/api/group/', groupRouter)

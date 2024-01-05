@@ -15,6 +15,11 @@ const UserSchema = new Schema(
             type: String,
             required: true
         },
+        totalExpense: {
+            type: Number,
+            default: 0,
+            required: true
+        },
         groups: [
             {
                 type: Schema.Types.ObjectId,

@@ -1,10 +1,12 @@
-import {nanoid} from "nanoid";
+import {customAlphabet} from "nanoid";
 import Group from "../models/Group.js";
 import User from "../models/User.js";
 
 export const createGroup = async (req, res, next) => {
     try {
         const {name, userId} = req.body;
+
+        const nanoid = customAlphabet('1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ', 7)
         const inviteCode = nanoid()
 
         const user = await User.findById(userId);

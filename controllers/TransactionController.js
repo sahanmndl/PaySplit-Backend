@@ -28,12 +28,20 @@ export const createTransaction = async (req, res, next) => {
             participants: participants,
         })
 
-        creator.createdTransactions.push(transaction);
+        let sum = 0
+        participants.map((pt) => sum += pt.amount)
+
+        creator.createdTransactions.push(transaction)
+        creator.totalExpense += (totalAmount - sum)
+
         group.transactionHistory.push(transaction)
+        group.totalExpense += totalAmount
+
         for (const participant of participants) {
             const user = await User.findById(participant.userId);
             if (user) {
-                user.pendingTransactions.push(transaction);
+                user.pendingTransactions.push(transaction)
+                user.totalExpense += participant.amount
                 await user.save();
             }
         }
@@ -75,31 +83,55 @@ export const updateTransaction = async (req, res, next) => {
 
 export const deleteTransaction = async (req, res, next) => {
     try {
-        const {transactionId, creatorId} = req.body;
+        const {transactionId, creatorId, groupId} = req.body;
 
         const transaction = await Transaction.findById(transactionId);
         if (!transaction) {
             return res.status(404).json({message: 'Transaction not found'});
         }
 
-        if (transaction.creator.toString() !== creatorId) {
+        const creator = await User.findById(creatorId)
+        if (!transaction) {
+            return res.status(404).json({message: 'Creator not found'});
+        }
+
+        const group = await Group.findById(groupId)
+        if (!group) {
+            return res.status(404).json({message: 'Group not found'});
+        }
+
+        if (transaction.creatorId.toString() !== creatorId) {
             return res.status(403).json({message: 'User is not the creator of the transaction'});
         }
 
+        let sum = 0
+        transaction.participants.map((pt) => sum += pt.amount)
+
+        creator.createdTransactions = creator.createdTransactions.filter(pt => pt.toString() !== transactionId)
+        creator.totalExpense -= (transaction.totalAmount - sum)
+
+        group.transactionHistory = group.transactionHistory.filter(pt => pt.toString() !== transactionId)
+        group.totalExpense -= transaction.totalAmount
+
         const usersToUpdate = await User.find({_id: {$in: transaction.participants.map(p => p.userId)}});
         for (const userToUpdate of usersToUpdate) {
-            userToUpdate.pendingTransactions = userToUpdate.pendingTransactions.filter(pt => pt.toString() !== transactionId);
-            await userToUpdate.save();
+            if (userToUpdate) {
+                const participant = transaction.participants.find(p => String(p.userId) === String(userToUpdate._id));
+                if (participant) {
+                    userToUpdate.totalExpense -= participant.amount;
+                    userToUpdate.pendingTransactions = userToUpdate.pendingTransactions.filter(pt => pt.toString() !== transactionId);
+                    await userToUpdate.save();
+                }
+            }
         }
 
-        const creator = await User.findById(creatorId);
-        creator.createdTransactions = creator.createdTransactions.filter(pt => pt.toString() !== transactionId);
-        await creator.save();
-
-        await Transaction.findByIdAndDelete(transactionId);
+        await creator.save()
+        await group.save()
+        await Transaction.findByIdAndDelete(transactionId)
 
         return res.status(200).json({message: 'Transaction deleted successfully'});
     } catch (e) {
+        console.error(e)
         return res.status(500).json({message: 'Error deleting transaction'});
     }
 }
@@ -183,9 +215,10 @@ export const deleteAllTransactionsInDB = async (req, res, next) => {
 
         const users = await User.find({});
         for (const user of users) {
-            user.pendingTransactions = [];
-            user.createdTransactions = [];
-            await user.save();
+            user.totalExpense = 0
+            user.pendingTransactions = []
+            user.createdTransactions = []
+            await user.save()
         }
 
         const groups = await Group.find({})
