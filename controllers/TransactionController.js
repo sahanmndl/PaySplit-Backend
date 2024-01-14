@@ -232,3 +232,12 @@ export const deleteAllTransactionsInDB = async (req, res, next) => {
         return res.status(500).json({message: 'Error deleting transactions'});
     }
 }
+
+export const getAllTransactionsInDB = async (req, res, next) => {
+    try {
+        const transactions = await Transaction.find({});
+        return res.status(200).json({transactions});
+    } catch (e) {
+        return res.status(500).json({message: 'Error fetching transactions'});
+    }
+};

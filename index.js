@@ -4,24 +4,15 @@ import cors from "cors";
 import mongoose from "mongoose";
 import userRouter from "./routes/UserRouter.js";
 import groupRouter from "./routes/GroupRouter.js";
-import {rateLimit} from 'express-rate-limit';
 import redisClient from "./middleware/Redis.js";
+import {rateLimiter} from "./middleware/RateLimiter.js";
 
 dotenv.config()
-
-// Rate limit to 100 API requests in 1 minute per IP address
-const limiter = rateLimit({
-    windowMs: 60 * 1000,
-    limit: 100,
-    standardHeaders: 'draft-7',
-    legacyHeaders: false,
-    message: 'Too many requests from this IP, please try again later'
-})
 
 const app = express()
 
 app.use(cors())
-//app.use(limiter)
+app.use(rateLimiter)
 app.use(express.json({limit: "30mb", extended: true}))
 app.use('/api/user/', userRouter)
 app.use('/api/group/', groupRouter)

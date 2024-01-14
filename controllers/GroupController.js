@@ -33,8 +33,6 @@ export const joinGroup = async (req, res, next) => {
     try {
         const {inviteCode, userId} = req.body;
 
-        console.log(inviteCode, userId)
-
         const user = await User.findById(userId);
         if (!user) {
             return res.status(404).json({message: 'User not found'});
