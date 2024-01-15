@@ -27,8 +27,12 @@ mongoose
         console.log("CONNECTED TO MONGODB THROUGH PORT 8008")
         await redisClient.connect()
             .then(() => console.log("CONNECTED TO REDIS"))
-            .catch((e) => console.error("Redis connection error: ", e))
+            .catch((e) => {
+                console.error("Redis connection error: ", e)
+                process.exit(1)
+            })
     })
     .catch((err) => {
         console.error("CONNECTION ERROR: ", err)
+        process.exit(1)
     });

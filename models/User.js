@@ -15,9 +15,24 @@ const UserSchema = new Schema(
             type: String,
             required: true
         },
+        totalPaid: {
+            type: Number,
+            default: 0.0,
+            required: true
+        },
         totalExpense: {
             type: Number,
-            default: 0,
+            default: 0.0,
+            required: true
+        },
+        totalOwe: {
+            type: Number,
+            default: 0.0,
+            required: true
+        },
+        totalReturn: {
+            type: Number,
+            default: 0.0,
             required: true
         },
         groups: [

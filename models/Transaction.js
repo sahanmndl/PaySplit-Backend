@@ -15,7 +15,7 @@ const TransactionSchema = new Schema({
         },
         totalAmount: {
             type: Number,
-            default: 0,
+            default: 0.0,
             required: true
         },
         participants: [
@@ -26,7 +26,7 @@ const TransactionSchema = new Schema({
                 },
                 amount: {
                     type: Number,
-                    default: 0,
+                    default: 0.0,
                     required: true,
                 },
                 paid: {

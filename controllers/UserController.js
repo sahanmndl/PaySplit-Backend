@@ -48,10 +48,10 @@ export const getUserById = async (req, res, next) => {
         const {userId, getType} = req.body
 
         const cacheKey = `user-${userId}`
-
         if (getType === ON_LOAD) {
             const cachedUser = await redisClient.get(cacheKey)
             if (cachedUser !== null) {
+                console.log("CACHED USER DETAILS RESPONSE: ", cacheKey)
                 return res.status(200).json({user: JSON.parse(cachedUser)});
             }
         }
@@ -61,7 +61,7 @@ export const getUserById = async (req, res, next) => {
             return res.status(404).json({message: 'User not found'});
         }
 
-        await redisClient.setEx(cacheKey, 30, JSON.stringify(user))
+        await redisClient.setEx(cacheKey, 10, JSON.stringify(user))
 
         return res.status(200).json({user});
     } catch (e) {

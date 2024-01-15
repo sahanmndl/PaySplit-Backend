@@ -1,6 +1,8 @@
 import User from "../models/User.js";
 import Group from "../models/Group.js";
 import Transaction from "../models/Transaction.js";
+import {ON_LOAD} from "../utils/constants.js";
+import redisClient from "../middleware/Redis.js";
 
 export const createTransaction = async (req, res, next) => {
     try {
@@ -32,7 +34,9 @@ export const createTransaction = async (req, res, next) => {
         participants.map((pt) => sum += pt.amount)
 
         creator.createdTransactions.push(transaction)
+        creator.totalPaid += totalAmount
         creator.totalExpense += (totalAmount - sum)
+        creator.totalReturn += sum
 
         group.transactionHistory.push(transaction)
         group.totalExpense += totalAmount
@@ -42,6 +46,7 @@ export const createTransaction = async (req, res, next) => {
             if (user) {
                 user.pendingTransactions.push(transaction)
                 user.totalExpense += participant.amount
+                user.totalOwe += participant.amount
                 await user.save();
             }
         }
@@ -108,6 +113,7 @@ export const deleteTransaction = async (req, res, next) => {
         transaction.participants.map((pt) => sum += pt.amount)
 
         creator.createdTransactions = creator.createdTransactions.filter(pt => pt.toString() !== transactionId)
+        creator.totalPaid -= transaction.totalAmount
         creator.totalExpense -= (transaction.totalAmount - sum)
 
         group.transactionHistory = group.transactionHistory.filter(pt => pt.toString() !== transactionId)
@@ -119,11 +125,18 @@ export const deleteTransaction = async (req, res, next) => {
                 const participant = transaction.participants.find(p => String(p.userId) === String(userToUpdate._id));
                 if (participant) {
                     userToUpdate.totalExpense -= participant.amount;
+                    if (!participant.paid) {
+                        userToUpdate.totalOwe -= participant.amount;
+                    } else {
+                        creator.totalReturn += participant.amount
+                    }
                     userToUpdate.pendingTransactions = userToUpdate.pendingTransactions.filter(pt => pt.toString() !== transactionId);
                     await userToUpdate.save();
                 }
             }
         }
+
+        creator.totalReturn -= sum
 
         await creator.save()
         await group.save()
@@ -180,29 +193,113 @@ export const settleTransaction = async (req, res, next) => {
             return res.status(404).json({message: "User not found"})
         }
 
-        const participantIndex = transaction.participants.findIndex(
-            (participant) => participant.userId === userId
-        );
+        const creator = await User.findById(transaction.creatorId)
+        if (!creator) {
+            return res.status(404).json({message: "Creator not found"})
+        }
 
+        const participantIndex = transaction.participants.findIndex((participant) => participant.userId === userId)
         if (participantIndex === -1) {
             return res.status(404).json({message: 'Participant not found in the transaction'});
         }
 
         const paid = transaction.participants[participantIndex].paid
+        const amount = transaction.participants[participantIndex].amount
         if (paid) {
             user.pendingTransactions.push(transaction)
+            user.totalOwe += amount
+            creator.totalReturn += amount
         } else {
             user.pendingTransactions = user.pendingTransactions.filter(pt => pt.toString() !== transactionId)
+            user.totalOwe -= amount
+            creator.totalReturn -= amount
         }
 
         transaction.participants[participantIndex].paid = !paid
 
         await user.save()
+        await creator.save()
         await transaction.save()
 
         return res.status(200).json({transaction})
     } catch (e) {
         return res.status(500).json({message: 'Error settling transaction'})
+    }
+};
+
+export const getGroupTransactions = async (req, res, next) => {
+    try {
+        const {groupId, userId, getType} = req.body;
+
+        const group = await Group.findById(groupId);
+        if (!group) {
+            return res.status(404).json({message: 'Group not found'});
+        }
+
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({message: 'User not found'});
+        }
+
+        if (!group.members.includes(user._id)) {
+            return res.status(403).json({message: 'User is not a member of the group'});
+        }
+
+        const cacheKey = `group-transactions-${groupId}`
+
+        if (getType === ON_LOAD) {
+            const cachedTransactions = await redisClient.get(cacheKey)
+            if (cachedTransactions !== null) {
+                console.log("CACHED GROUP TRANSACTIONS RESPONSE: ", cacheKey)
+                return res.status(200).json({transactionHistory: JSON.parse(cachedTransactions)});
+            }
+        }
+
+        const transactionHistory = group.transactionHistory.map((transactionId) => {
+            return Transaction.findById(transactionId);
+        });
+
+        const resolvedTransactions = await Promise.all(transactionHistory);
+
+        await redisClient.setEx(cacheKey, 30, JSON.stringify(resolvedTransactions))
+
+        return res.status(200).json({transactionHistory: resolvedTransactions});
+    } catch (e) {
+        console.error(e);
+        return res.status(500).json({message: 'Error fetching group transaction history'});
+    }
+};
+
+export const getUserPendingTransactions = async (req, res, next) => {
+    try {
+        const {userId, getType} = req.body;
+
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({message: 'User not found'});
+        }
+
+        const cacheKey = `user-pending-transactions-${userId}`
+        if (getType === ON_LOAD) {
+            const cachedTransactions = await redisClient.get(cacheKey)
+            if (cachedTransactions !== null) {
+                console.log("CACHED USER PENDING TRANSACTIONS: ", cacheKey)
+                return res.status(200).json({pendingTransactions: JSON.parse(cachedTransactions)});
+            }
+        }
+
+        const pendingTransactions = user.pendingTransactions.map((transactionId) => {
+            return Transaction.findById(transactionId);
+        });
+
+        const resolvedTransactions = await Promise.all(pendingTransactions);
+
+        await redisClient.setEx(cacheKey, 30, JSON.stringify(resolvedTransactions))
+
+        return res.status(200).json({pendingTransactions: resolvedTransactions});
+    } catch (e) {
+        console.error(e);
+        return res.status(500).json({message: 'Error fetching user pending transactions'});
     }
 };
 

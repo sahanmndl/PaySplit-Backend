@@ -12,7 +12,7 @@ const GroupSchema = new Schema({
         },
         totalExpense: {
             type: Number,
-            default: 0,
+            default: 0.0,
             required: true,
         },
         members: [
